@@ -1,5 +1,5 @@
 [package]
-name = "steam-monitor"
+name = "gamer-gauge"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,3 +9,15 @@ edition = "2021"
 sysinfo = "0.27.2"
 futures-ticker = "0.0.2"
 futures = "0.3"
+winit = "0.28.1"
+
+
+[dependencies.windows]
+version = "0.44.0"
+features = [
+    "Data_Xml_Dom",
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Threading",
+    "Win32_UI_WindowsAndMessaging",
+]
