@@ -1,22 +1,24 @@
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
-use std::time::Duration;
 
 use nwd::NwgUi;
 use std::sync::{Arc, Mutex};
-use winapi::um::winuser::{WS_EX_LAYERED, WS_EX_TOPMOST};
+use windows::Win32::{
+    Foundation::HWND,
+    Graphics::Gdi::{GetMonitorInfoA, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTOPRIMARY},
+    UI::WindowsAndMessaging::GetForegroundWindow,
+    //  UI::WindowsAndMessaging::{WS_EX_LAYERED, WS_EX_TOPMOST},
+};
 
-//mod monitor;
-
+//use winapi::
 // The overlay code is adapted from https://github.com/jcdavis/hroverlay, which is released under the
 // Apache 2.0 license (https://raw.githubusercontent.com/jcdavis/hroverlay/main/LICENSE).
 
 #[derive(Default, NwgUi)]
 pub struct Overlay {
-    #[nwg_control(size: (100, 100), position: (300, 300), flags: "POPUP|VISIBLE", ex_flags: WS_EX_TOPMOST|WS_EX_LAYERED)]
+    #[nwg_control(size: (200, 100), position: (200, 0), flags: "POPUP|VISIBLE", ex_flags: winapi::um::winuser::WS_EX_TOPMOST|winapi::um::winuser::WS_EX_LAYERED)]
     #[nwg_events( OnInit: [Overlay::on_init], OnWindowClose: [Overlay::close] )]
     window: nwg::Window,
 
@@ -26,12 +28,12 @@ pub struct Overlay {
     #[nwg_resource(family: "Arial", size: 50, weight: 700)]
     font: nwg::Font,
 
-    #[nwg_control(text: "--", size: (100, 120), font: Some(&data.font), h_align: HTextAlign::Right, background_color: Some([255, 0, 0]))]
+    #[nwg_control(text: "", size: (200, 100), font: Some(&data.font), h_align: HTextAlign::Right, background_color: Some([255, 0, 0]))]
     #[nwg_layout_item(layout: layout, row: 0, col: 0)]
     time_label: nwg::Label,
 
     #[nwg_control]
-    #[nwg_events(OnNotice: [Overlay::draw_hr])]
+    #[nwg_events(OnNotice: [Overlay::on_notice])]
     notice: nwg::Notice,
 
     text: Arc<Mutex<String>>,
@@ -44,19 +46,18 @@ impl Overlay {
 
         let notice = self.notice.sender();
 
-        let (sender, receiver): (Sender<String>, Receiver<String>) = mpsc::channel();
+        let (sender, receiver) = mpsc::channel();
 
         thread::spawn(|| {
-            create_dummy_updater(sender);
-            //  monitor::check_procs_sync(sender);
+            crate::monitor::check_procs_sync(sender);
         });
 
-        let c = self.text.clone();
+        let display_text = self.text.clone();
 
         thread::spawn(move || {
             for rcv in receiver {
-                let mut text = c.lock().unwrap();
-                *text = rcv;
+                // deref is dangerous
+                *display_text.lock().unwrap() = rcv;
                 notice.notice();
             }
         });
@@ -71,14 +72,17 @@ impl Overlay {
         }
     }
 
-    fn draw_hr(&self) {
-        // set new string atomically from updater
+    fn on_notice(&self) {
         match self.text.lock().unwrap().as_str() {
             "" => {
-                // hide window in this case?
-                self.time_label.set_text("--");
+                self.window.set_visible(false);
             }
             text => {
+                let (x, y) = get_right_corner();
+                print!("{} {}", x, y);
+                self.window.set_visible(true);
+                self.window.set_size(200, 100);
+                self.window.set_position(x - 200, y);
                 self.time_label.set_text(text);
             }
         }
@@ -91,14 +95,16 @@ impl Overlay {
     }
 }
 
-// For basic UI testing. Just throws a bunch of data in the 0-199 range as a placeholder
-fn create_dummy_updater(sender: Sender<String>) {
-    let mut count: i64 = 0;
-    loop {
-        let r = count % 200;
-        let s = format!("{}", r);
-        sender.send(s);
-        thread::sleep(Duration::from_millis(100));
-        count += 1;
+fn get_right_corner() -> (i32, i32) {
+    let mut minf = MONITORINFO::default();
+    minf.cbSize = std::mem::size_of::<MONITORINFO>() as _;
+
+    // https://github.com/ACK72/THRM-EX/blob/83588464c031082735b5f10bac881ef3d3d16d20/src/main.rs
+    unsafe {
+        let hwnd = GetForegroundWindow();
+        let hmnt = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
+        let _res = GetMonitorInfoA(hmnt, &mut minf as *mut MONITORINFO);
     }
+
+    return (minf.rcMonitor.right, minf.rcMonitor.top);
 }
