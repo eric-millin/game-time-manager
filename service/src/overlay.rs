@@ -1,7 +1,7 @@
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
-use std::sync::mpsc;
 use std::thread;
+use std::{sync::mpsc, time::Duration};
 
 use nwd::NwgUi;
 use std::sync::{Arc, Mutex};
@@ -12,20 +12,22 @@ use windows::Win32::{
     //  UI::WindowsAndMessaging::{WS_EX_LAYERED, WS_EX_TOPMOST},
 };
 
+use crate::config;
+
 //use winapi::
 // The overlay code is adapted from https://github.com/jcdavis/hroverlay, which is released under the
 // Apache 2.0 license (https://raw.githubusercontent.com/jcdavis/hroverlay/main/LICENSE).
 
 #[derive(Default, NwgUi)]
 pub struct Overlay {
-    #[nwg_control(size: (200, 100), position: (200, 0), flags: "POPUP|VISIBLE", ex_flags: winapi::um::winuser::WS_EX_TOPMOST|winapi::um::winuser::WS_EX_LAYERED)]
+    #[nwg_control(size: (200, 100), position: (200, 0), flags: "POPUP", ex_flags: winapi::um::winuser::WS_EX_TOPMOST|winapi::um::winuser::WS_EX_LAYERED)]
     #[nwg_events( OnInit: [Overlay::on_init], OnWindowClose: [Overlay::close] )]
     window: nwg::Window,
 
     #[nwg_layout(parent: window, margin: [0,0,0,0], spacing: 0)]
     layout: nwg::GridLayout,
 
-    #[nwg_resource(family: "Arial", size: 50, weight: 700)]
+    #[nwg_resource(family: "Arial", size: 100, weight: 700)]
     font: nwg::Font,
 
     #[nwg_control(text: "", size: (200, 100), font: Some(&data.font), h_align: HTextAlign::Right, background_color: Some([255, 0, 0]))]
@@ -45,19 +47,24 @@ impl Overlay {
         use winapi::um::winuser::{SetLayeredWindowAttributes, LWA_COLORKEY};
 
         let notice = self.notice.sender();
-
         let (sender, receiver) = mpsc::channel();
 
         thread::spawn(|| {
-            crate::monitor::check_procs_sync(sender);
+            crate::watcher::check_procs_sync(sender);
         });
 
         let display_text = self.text.clone();
 
+        let cfg = config::load();
+
         thread::spawn(move || {
             for rcv in receiver {
-                // deref is dangerous
                 *display_text.lock().unwrap() = rcv;
+                notice.notice();
+
+                thread::sleep(Duration::from_secs(10));
+
+                *display_text.lock().unwrap() = "".to_string();
                 notice.notice();
             }
         });
@@ -80,14 +87,13 @@ impl Overlay {
             text => {
                 let (x, y) = get_right_corner();
                 print!("{} {}", x, y);
-                self.window.set_visible(true);
-                self.window.set_size(200, 100);
-                self.window.set_position(x - 200, y);
+
+                self.window.set_size(400, 200);
+                self.window.set_position(x - 400, y);
                 self.time_label.set_text(text);
+                self.window.set_visible(true);
             }
         }
-
-        // can wait and then hide after showing here, or fire async on timer to do the hide??
     }
 
     fn close(&self) {

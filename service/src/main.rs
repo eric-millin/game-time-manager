@@ -4,8 +4,9 @@ extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 use nwg::NativeUi;
 
-mod monitor;
+mod config;
 mod overlay;
+mod watcher;
 
 fn main() {
     nwg::init().expect("Failed to init Native Windows GUI");

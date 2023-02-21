@@ -1,0 +1,17 @@
+[overlay]
+width = 400
+height = 200
+font = "Arial"
+font_size = 100
+# red, green, blue values between 0 and 255
+font_rgb = [255, 255, 255]
+# red, green, blue values between 0 and 255
+background_rgb = [255, 0, 0]
+
+[watcher]
+# how often to check process state (seconds)
+poll_frequency = 5
+# how often to show data (seconds)
+show_frequency = 900
+# how long to show data (seconds)
+show_duration = 10
