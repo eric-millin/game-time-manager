@@ -2,31 +2,37 @@ use serde::Deserialize;
 use std::fs;
 use std::str::FromStr;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default, Clone)]
 pub struct Config {
-    overlay: OverlayConfig,
-    watcher: WatcherConfig,
+    pub overlay: OverlayConfig,
+    pub watcher: WatcherConfig,
 }
 
-#[derive(Deserialize)]
-struct OverlayConfig {
-    width: u32,
-    height: u32,
-    font: String,
-    font_size: u32,
-    font_rgb: Vec<u8>,
-    background_rgb: Vec<u8>,
+#[derive(Deserialize, Default, Clone)]
+pub struct OverlayConfig {
+    pub width: u32,
+    pub height: u32,
+    pub font: String,
+    pub font_size: u32,
+    pub font_rgb: Vec<u8>,
+    pub background_rgb: Vec<u8>,
+    pub show_duration: u64,
 }
 
-#[derive(Deserialize)]
-struct WatcherConfig {
-    poll_frequency: u32,
-    show_frequency: u32,
-    show_duration: u32,
+#[derive(Deserialize, Default, Clone)]
+pub struct WatcherConfig {
+    pub poll_frequency: u64,
+    pub notification_frequency: u64,
+    pub ignore: Vec<String>,
 }
 
 pub fn load() -> Result<Config, toml::de::Error> {
-    let cfg = fs::read_to_string("config.toml").unwrap();
+    let mut dir = std::env::current_exe().unwrap();
+    dir.pop();
 
-    return toml::from_str(cfg.as_str());
+    let p = format!("{}\\config.toml", dir.to_str().unwrap());
+
+    return toml::from_str(fs::read_to_string(p).unwrap().as_str());
 }
+
+impl Config {}

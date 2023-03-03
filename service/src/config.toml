@@ -7,11 +7,17 @@ font_size = 100
 font_rgb = [255, 255, 255]
 # red, green, blue values between 0 and 255
 background_rgb = [255, 0, 0]
-
-[watcher]
-# how often to check process state (seconds)
-poll_frequency = 5
-# how often to show data (seconds)
-show_frequency = 900
 # how long to show data (seconds)
 show_duration = 10
+
+[watcher]
+# how often to check system processes for likely games (seconds)
+poll_frequency = 5
+# how often to notify the overlay to show data (seconds)
+notification_frequency = 600
+# executable names to ignore; case-sensitive, supports regular expressions (wrap with 3 single quotes)
+ignore = [
+    "explorer.exe",
+    "TrainerRoad.exe",
+    '''^Zwiift.+''',
+]
