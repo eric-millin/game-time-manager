@@ -10,7 +10,7 @@ use windows::Win32::{
     UI::WindowsAndMessaging::GetForegroundWindow,
 };
 
-use crate::{config, watcher};
+use crate::{config, system_provider, watcher};
 
 //use winapi::
 // The overlay code is adapted from https://github.com/jcdavis/hroverlay, which is released under the
@@ -48,7 +48,8 @@ impl Overlay {
         let (sender, receiver) = mpsc::channel();
 
         thread::spawn(|| {
-            watcher::watch_procs(sender);
+            let sysprovider = &system_provider::Win32Provider::new();
+            watcher::watch(sysprovider, sender);
         });
 
         let display_text = self.text.clone();
@@ -97,10 +98,6 @@ impl Overlay {
                 self.window.set_visible(false);
             }
             text => {
-                // TODO: font
-                // nwg::Font::set_global_family(cfg.overlay.font.as_str())
-                //     .expect("Failed to set default font");
-
                 self.time_label.set_text(text);
 
                 let (x, y) = get_right_corner();
@@ -124,7 +121,7 @@ fn get_right_corner() -> (i32, i32) {
     unsafe {
         let hwnd = GetForegroundWindow();
         let hmnt = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
-        let _res = GetMonitorInfoA(hmnt, &mut minf as *mut MONITORINFO);
+        let _res = GetMonitorInfoA(hmnt, &mut minf as _);
     }
 
     return (minf.rcMonitor.right, minf.rcMonitor.top);

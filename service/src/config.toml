@@ -14,7 +14,7 @@ show_duration = 10
 # how often to check system processes for likely games (seconds)
 poll_frequency = 5
 # how often to notify the overlay to show data (seconds)
-notification_frequency = 600
+notification_frequency = 300
 # executable names to ignore; case-sensitive, supports regular expressions (wrap with 3 single quotes)
 ignore = [
     "explorer.exe",

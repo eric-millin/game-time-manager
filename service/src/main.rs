@@ -6,6 +6,7 @@ use nwg::NativeUi;
 
 mod config;
 mod overlay;
+mod system_provider;
 mod watcher;
 
 fn main() {
