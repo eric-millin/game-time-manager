@@ -84,7 +84,7 @@ impl SystemProvider for Win32Provider {
 
             match shi.GetString(&PKEY_Software_ProductName as _) {
                 Ok(desc) => return Ok(desc.to_string().unwrap()),
-                Err(_) => return Err("".to_string()),
+                Err(_) => return Ok("".to_string()),
             }
         };
     }
