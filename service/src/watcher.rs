@@ -53,6 +53,8 @@ pub fn watch(sysprovider: &dyn SystemProvider, sender: Sender<String>) {
 
         let game_proc;
 
+        // try_get_game_pid could return Result<Option<Pid>, Error>, then use Some/None for control flow rather than Error
+        //         match sysprovider.try_get_game_pid()? {
         match sysprovider.try_get_game_pid() {
             Ok(pid) => {
                 system.refresh_processes();
@@ -63,7 +65,8 @@ pub fn watch(sysprovider: &dyn SystemProvider, sender: Sender<String>) {
 
                 game_proc = system.process(pid).unwrap();
             }
-            Err(_) => continue,
+            // in most cases this means no game-like process was found; TODO: add granular error handling
+            _ => continue,
         }
 
         let game_exe_name = game_proc.name();
@@ -98,6 +101,17 @@ pub fn watch(sysprovider: &dyn SystemProvider, sender: Sender<String>) {
         {
             continue;
         }
+        
+        // TODO: use Clippy!
+        
+//         match last_shown {
+//           Some(last_shown) => {
+        // Do elapsed check
+//             }
+//            None => {
+//             continue
+//             }
+//         }
 
         game.friendly_name =
             match sysprovider.try_get_product_name(game_proc.exe().display().to_string()) {
