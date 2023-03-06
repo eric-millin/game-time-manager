@@ -18,6 +18,9 @@ use windows::{
     },
 };
 
+
+// TODO: use Anyhow crate!!!!!
+
 const ERR_NO_GAME_FOUND: &str = "ErrNoGameFound";
 static INIT_COM: std::sync::Once = std::sync::Once::new();
 
@@ -82,10 +85,10 @@ impl SystemProvider for Win32Provider {
                 SHCreateItemFromParsingName(PCWSTR(HSTRING::from(exe_name).as_ptr()), None)
                     .unwrap();
 
-            match shi.GetString(&PKEY_Software_ProductName as _) {
-                Ok(desc) => return Ok(desc.to_string().unwrap()),
-                Err(_) => return Err("".to_string()),
-            }
+            Ok(match shi.GetString(&PKEY_Software_ProductName as _) {
+                Ok(desc) => desc.to_string()?,
+                Err(_) => "".to_string(),
+            })
         };
     }
 }
